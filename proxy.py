@@ -26,15 +26,9 @@
 #
 ##############################################################################
 import netsvc
-from osv import osv,fields
-from proxy_rpc import ProxyRPC
-
-LOCAL_DBS = {}
-REMOTE_DBS = {}
-ERPS = {}
-
-_PROXY_REMOTES_CACHE = {} #{ID: socket}
-_PROXY_DATABASES_CACHE = {} # {Database: ID}
+import pooler
+import xmlrpclib
+from osv import osv, fields
 
 class ProxyRemotes(osv.osv):
     """Model for manage Proxy Remotes."""
@@ -46,40 +40,42 @@ class ProxyRemotes(osv.osv):
       'name': fields.char('Description', size=255, required=True),
       'host': fields.char('Host', size=255, required=True),
       'port': fields.integer('Port', required=True),
+      'active': fields.boolean('Active'),
     }
 
     _defaults = {
         'host': lambda *a: 'localhost',
         'port': lambda *a: 2000,
+        'active': lambda *a: 1,
     }
-    
-    def __init__(self, pool, cursor):
-        """Init proxy databases.
-        """
-        super(ProxyRemotes, self).__init__(pool, cursor)
-        try:
-            proxy_obj = self.pool.get('proxy.remotes')
-            UID = 1
-            ids = proxy_obj.search(cursor, UID, [])
-            for erp in self.read(cursor, UID, ids):
-                rpc = ProxyRPC(erp['host'], erp['port'])
-                _PROXY_REMOTES_CACHE[erp['id']] = rpc
-                for dbname in rpc.db_list():
-                    _PROXY_DATABASES_CACHE = {dbname: rpc}
-        except Exception:
-            pass
 
 ProxyRemotes()
 
 def is_local(db):
-    return db in LOCAL_DBS.keys()
+    return db in netsvc.SERVICES['db'].list()
 
 def proxy_db_list():
     """Lists all databases behind proxy.
     """
     res = []
-    res.extend(netsvc.SERVICES['db'].list())
-    res.extend(_PROXY_DATABASES_CACHE.keys())
+    uid = 1
+    for dbname in netsvc.SERVICES['db'].list():
+        res.append(dbname)
+        # Check proxies in this database
+        dba, pool = pooler.get_db_and_pool(dbname)
+        cursor = dba.cursor()
+        try:
+            proxy_obj = pool.get('proxy.remotes')
+            pr_ids = proxy_obj.search(cursor, uid, [])
+            for proxy in proxy_obj.browse(cursor, uid, pr_ids):
+                dbsock = xmlrpclib.ServerProxy('http://%s:%i/xmlrpc/db' %
+                                               (proxy.host, proxy.port))
+                res += dbsock.list()
+        except Exception:
+            pass
+        finally:
+            cursor.close()
+    
     return res
 
 # Overwrite the db.list() method
@@ -104,7 +100,7 @@ class LocalServiceProxy(netsvc.Service):
             if is_local(params[0]):
                 return getattr(self, method)(*params)
             else:
-                rpc = _PROXY_DATABASES_CACHE.get(params[0], None)
+                
                 # Add a try-except-finally if errors occurs,
                 # disconnect the socket
                 try:
