@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-# Copyright (c) 2010 Eduard Carreras i Nadal All Rights Reserved.
-#                    Eduard Carreras <ecn@lapunxa.com>
-#                    http://www.lapunxa.com
+# Copyright (c) 2010 Eduard Carreras i Nadal <ecarreras@gmail.com>
 #
 # WARNING: This program as such is intended to be used by professional
 # programmers who take the whole responsability of assessing all potential
@@ -27,12 +25,9 @@
 # Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
 #
 ##############################################################################
-
-from service import web_services
 import netsvc
 from osv import osv,fields
-import tiny_socket
-import proxy_rpc
+from proxy_rpc import ProxyRPC
 
 LOCAL_DBS = {}
 REMOTE_DBS = {}
@@ -41,7 +36,7 @@ ERPS = {}
 _PROXY_REMOTES_CACHE = {} #{ID: socket}
 _PROXY_DATABASES_CACHE = {} # {Database: ID}
 
-class proxy_remotes(osv.osv):
+class ProxyRemotes(osv.osv):
     """Model for manage Proxy Remotes."""
 
     _name = 'proxy.remotes'
@@ -57,25 +52,31 @@ class proxy_remotes(osv.osv):
         'host': lambda *a: 'localhost',
         'port': lambda *a: 2000,
     }
-                
-    def init(self, cr):
-        ids = self.search(cr, 1, [])
-        # For ever remote we list its databases
-        for erp in self.read(cr, 1, ids):
-            rpc = proxy_rpc.ProxyRPC(erp['host'], erp['port'])
-            _PROXY_REMOTES_CACHE[erp['id']] = rpc
-            for db in rpc.db_list():
-                _PROXY_DATABASES_CACHE = {db: rpc}
-        
+    
+    def __init__(self, pool, cursor):
+        """Init proxy databases.
+        """
+        super(ProxyRemotes, self).__init__(pool, cursor)
+        try:
+            proxy_obj = self.pool.get('proxy.remotes')
+            UID = 1
+            ids = proxy_obj.search(cursor, UID, [])
+            for erp in self.read(cursor, UID, ids):
+                rpc = ProxyRPC(erp['host'], erp['port'])
+                _PROXY_REMOTES_CACHE[erp['id']] = rpc
+                for dbname in rpc.db_list():
+                    _PROXY_DATABASES_CACHE = {dbname: rpc}
+        except Exception:
+            pass
 
-proxy_remotes()
-
-
+ProxyRemotes()
 
 def is_local(db):
     return db in LOCAL_DBS.keys()
 
 def proxy_db_list():
+    """Lists all databases behind proxy.
+    """
     res = []
     res.extend(netsvc.SERVICES['db'].list())
     res.extend(_PROXY_DATABASES_CACHE.keys())
@@ -90,8 +91,8 @@ class LocalServiceProxy(netsvc.Service):
         self.__name = name
         try:
             self._service = netsvc.SERVICES[name]
-            for method_name, method_definition in self._service._methods.items():
-                setattr(self, method_name, method_definition)
+            for m_name, m_definition in self._service._methods.items():
+                setattr(self, m_name, m_definition)
         except KeyError, keyError:
             logger = netsvc.Logger()
             logger.notifyChannel('module', netsvc.LOG_ERROR,
@@ -104,13 +105,15 @@ class LocalServiceProxy(netsvc.Service):
                 return getattr(self, method)(*params)
             else:
                 rpc = _PROXY_DATABASES_CACHE.get(params[0], None)
-                # Add a try-except-finally if errors occurs, disconnect the socket
+                # Add a try-except-finally if errors occurs,
+                # disconnect the socket
                 try:
                     res = rpc.send((self.__name, method, params[0])+params[1:])
-                except Exception, e:
-                    pass
+                except Exception, exc:
+                    raise exc
                 finally:
-                    rpc.disconnect()
+                    if rpc:
+                        rpc.disconnect()
                 return res
 
 # Overwrite the dispatcher

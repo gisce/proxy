@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-# Copyright (c) 2010 Eduard Carreras i Nadal All Rights Reserved.
-#                    Eduard Carreras <ecn@lapunxa.com>
-#                    http://www.lapunxa.com
+# Copyright (c) 2010 Eduard Carreras i Nadal <ecarreras@gmail.com>
 #
 # WARNING: This program as such is intended to be used by professional
 # programmers who take the whole responsability of assessing all potential

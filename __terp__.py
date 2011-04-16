@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 ##############################################################################
 #
-# Copyright (c) 2010 Eduard Carreras i Nadal All Rights Reserved.
-#                    Eduard Carreras <ecn@lapunxa.com>
-#                    http://www.lapunxa.com
+# Copyright (c) 2010 Eduard Carreras i Nadal <ecarreras@gmail.com>
 #
 # WARNING: This program as such is intended to be used by professional
 # programmers who take the whole responsability of assessing all potential
@@ -32,12 +30,10 @@
     'version': '1.0',
     'category': 'Generic Modules/Others',
     'description': """
-    Makes the OpenERP Server a proxy for other OpenERP Servers
-    TODO: Create a view to configure servers.
-    TODO: Create a wizard config to add servers when installing it.
+      * Makes the OpenERP Server a proxy for other OpenERP Servers
     """,
     'author': 'Eduard Carreras',
-    'website': 'http://labs.lapunxa.com',
+    'website': 'https://github.com/lapunxa/lpx_proxy',
     'depends': ['base'],
     'init_xml': [],
     'update_xml': ["proxy_view.xml"],
