@@ -63,8 +63,12 @@ def proxy_db_list():
     up_servers = []
     for dbname in netsvc.SERVICES['db'].list():
         res.append(dbname)
+        # Uncomptible versions 4.2 databases, etc.
+        try:
+            dba, pool = pooler.get_db_and_pool(dbname)
+        except:
+            continue
         # Check proxies in this database
-        dba, pool = pooler.get_db_and_pool(dbname)
         cursor = dba.cursor()
         try:
             proxy_obj = pool.get('proxy.remotes')
