@@ -33,7 +33,7 @@
       * Makes the OpenERP Server a proxy for other OpenERP Servers
     """,
     'author': 'GISCE',
-    'website': 'https://github.com/lapunxa/lpx_proxy',
+    'website': 'https://github.com/gisce/proxy/wiki',
     'depends': ['base'],
     'init_xml': [],
     'update_xml': ["proxy_view.xml"],
