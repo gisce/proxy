@@ -36,7 +36,6 @@ class ProxyRemotes(osv.osv):
     """Model for manage Proxy Remotes."""
 
     _name = 'proxy.remotes'
-    _description = 'Remote Servers to connect from proxy'
 
     _columns = {
       'name': fields.char('Description', size=255, required=True),
