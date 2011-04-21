@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        <menuitem parent="base.menu_custom" name="Proxy administation" id="proxy_menu"/>
+        <record model="ir.ui.view" id="proxy_remotes_form_view">
+            <field name="name">proxy.remotes.form</field>
+            <field name="model">proxy.remotes</field>
+            <field name="type">form</field>
+            <field name="arch" type="xml">
+                <form string="Proxy">
+                    <field name="name" select="1"/>
+                    <field name="host" select="1"/>
+                    <field name="port" select="1"/>
+                    <field name="active" select="1"/>
+                </form>
+            </field>
+        </record>
+        <record model="ir.ui.view" id="proxy_remotes_tree_view">
+            <field name="name">proxy.remotes.tree</field>
+            <field name="model">proxy.remotes</field>
+            <field name="type">tree</field>
+            <field name="arch" type="xml">
+                <tree string="Proxies">
+                    <field name="name"/>
+                    <field name="host"/>
+                    <field name="port"/>
+                    <field name="active"/>
+                </tree>
+            </field>
+        </record>
+        <record id="action_proxy_remotes_tree" model="ir.actions.act_window">
+            <field name="name">Proxies list</field>
+            <field name="type">ir.actions.act_window</field>
+            <field name="res_model">proxy.remotes</field>
+            <field name="view_type">form</field>
+            <field name="view_mode">tree,form</field>
+        </record>
+        <menuitem action="action_proxy_remotes_tree" id="menu_proxy_remotes_tree" parent="proxy_menu"/>
+    </data>
+</openerp>

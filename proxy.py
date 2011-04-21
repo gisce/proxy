@@ -30,6 +30,8 @@ import pooler
 import xmlrpclib
 from osv import osv, fields
 
+_PROXY_SERVERS = {}
+
 class ProxyRemotes(osv.osv):
     """Model for manage Proxy Remotes."""
 
@@ -59,6 +61,7 @@ def proxy_db_list():
     """
     res = []
     uid = 1
+    up_servers = []
     for dbname in netsvc.SERVICES['db'].list():
         res.append(dbname)
         # Check proxies in this database
@@ -70,17 +73,22 @@ def proxy_db_list():
             for proxy in proxy_obj.browse(cursor, uid, pr_ids):
                 dbsock = xmlrpclib.ServerProxy('http://%s:%i/xmlrpc/db' %
                                                (proxy.host, proxy.port))
-                res += dbsock.list()
+                for remote_db in dbsock.list():
+                    res.append(remote_db)
+                    up_servers.append(remote_db)
+                    _PROXY_SERVERS[remote_db] = (proxy.host, proxy.port)
         except Exception:
             pass
         finally:
             cursor.close()
-    
+    # Drop from the dict servers unreachables
+    for proxy_db in _PROXY_SERVERS.keys():
+        if proxy_db not in up_servers:
+            del _PROXY_SERVERS[proxy_db]
     return res
 
 # Overwrite the db.list() method
 netsvc.SERVICES['db']._methods['list'] = proxy_db_list
-
 
 class LocalServiceProxy(netsvc.Service):
     def __init__(self, name):
@@ -100,17 +108,18 @@ class LocalServiceProxy(netsvc.Service):
             if is_local(params[0]):
                 return getattr(self, method)(*params)
             else:
-                
+                proxy = _PROXY_SERVERS[params[0]]
+                sock = xmlrpclib.ServerProxy('http://%s:%i/xmlrpc/%s' %
+                                             (proxy[0], proxy[1], self.__name))
                 # Add a try-except-finally if errors occurs,
                 # disconnect the socket
                 try:
-                    res = rpc.send((self.__name, method, params[0])+params[1:])
+                    res = getattr(sock, method)(*params)
                 except Exception, exc:
                     raise exc
-                finally:
-                    if rpc:
-                        rpc.disconnect()
                 return res
+        else:
+            return getattr(self, method)(*params)
 
 # Overwrite the dispatcher
 netsvc.LocalService = LocalServiceProxy
