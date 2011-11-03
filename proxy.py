@@ -76,10 +76,13 @@ def proxy_db_list():
             for proxy in proxy_obj.browse(cursor, uid, pr_ids):
                 dbsock = xmlrpclib.ServerProxy('http://%s:%i/xmlrpc/db' %
                                                (proxy.host, proxy.port))
-                for remote_db in dbsock.list():
-                    res.append(remote_db)
-                    up_servers.append(remote_db)
-                    _PROXY_SERVERS[remote_db] = (proxy.host, proxy.port)
+                try:
+                    for remote_db in dbsock.list():
+                        res.append(remote_db)
+                        up_servers.append(remote_db)
+                        _PROXY_SERVERS[remote_db] = (proxy.host, proxy.port)
+                except:
+                    continue
         except Exception:
             pass
         finally:
