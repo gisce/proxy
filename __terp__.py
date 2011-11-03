@@ -27,7 +27,7 @@
 ##############################################################################
 {
     'name': 'Proxy Module',
-    'version': '1.0.1',
+    'version': '1.0.2',
     'category': 'Generic Modules/Others',
     'description': """
       * Makes the OpenERP Server a proxy for other OpenERP Servers
